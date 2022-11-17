@@ -10,6 +10,7 @@ const atlas = {
     "8":[1,3],
     "0":[2,0],
     "unclicked":[3,0],
+    "wrongflag":[2,3],
     "flag":[3,1],
     "redmine":[3,2],
     "mine":[3,3],
@@ -20,24 +21,42 @@ class Minesweeper{
         this.rows = r;
         this.columns = c;
         this.mines = m;
+        this.movesLeft = r*c-m;
+        this.flagsLeft = m;
+        this.t = 0;
         //Create a canvas, tie it to Minesweeper instance
+        this.timeTracker = document.createElement("p");
+        this.timeTracker.innerHTML = "0";
+        this.timer = setInterval(() => {
+            this.t++;
+            this.timeTracker.innerHTML = this.t;
+        },1000);
+        this.flagsTracker = document.createElement("p");
+        this.flagsTracker.innerHTML = this.flagsLeft;
         let canvas = document.createElement('canvas');
         this.canvas = canvas;
         canvas.id = "game";
-        canvas.width = r*WIDTH;
-        canvas.height = c*WIDTH;
+        canvas.width = c*WIDTH;
+        canvas.height = r*WIDTH;
         canvas.onclick = this.reveal.bind(this);
         canvas.oncontextmenu = this.flag.bind(this);
-
         let body = document.getElementsByTagName("body")[0];
+        body.appendChild(this.timeTracker);
+        body.appendChild(this.flagsTracker);
         body.appendChild(canvas);
         this.ctx = canvas.getContext("2d");
         //2D mines array
         this.mines = [];
+        this.visited = [];
+        this.flags = [];
         for(let i = 0;i<r;i++){
             this.mines.push([]);
+            this.visited.push([]);
+            this.flags.push([]);
             for(let j = 0;j<c;j++){
                 this.mines[i].push(false);
+                this.visited[i].push(false);
+                this.flags[i].push(false);
             }
         }
         //generate m mines
@@ -57,7 +76,6 @@ class Minesweeper{
     }
     drawSprite(r,c,name){
         let loc = atlas[name];
-        console.log(`Drawing sprite with name ${name}`);
         this.ctx.drawImage(this.spritesheet,loc[1]*WIDTH,loc[0]*WIDTH,WIDTH,WIDTH
             ,c*WIDTH,r*WIDTH,WIDTH,WIDTH);
     }
@@ -69,41 +87,139 @@ class Minesweeper{
         let c = Math.floor(x/WIDTH);
         return [r,c];
     }
-    
+    adj(r,c){
+        if(r >= 0 && r < this.rows && c >= 0 && c < this.columns){
+            return this.mines[r][c];
+        }
+        return 0;
+    }
+    //Mark tile as visited, so long as there is no mine
+    //Return whether there is a mine at this location
+    visit(r,c){
+        if(!(r >= 0 && r < this.rows && c >= 0 && c < this.columns)){
+            return;
+        }
+        if(!this.visited[r][c] && !this.mines[r][c]){
+            this.visited[r][c] = true;
+            this.movesLeft--;
+            //Calculate the number of adjacent mines
+            let adj = 0;
+            for(let i = -1;i<=1;i++){
+                for(let j = -1;j<=1;j++){
+                    if(!(i === 0 && j === 0)){
+                        adj += this.adj(r+i,c+j);
+                    }
+                }
+            }
+            if(adj === 0){
+                //Recursively visit
+                for(let i = -1;i<=1;i++){
+                    for(let j = -1;j<=1;j++){
+                        if(!(i === 0 && j === 0)){
+                            this.visit(r+i,c+j);
+                        }
+                    }
+                }
+            }
+            this.drawSprite(r,c,adj.toString());
+
+        }
+    }
+    endGame(didWin){
+        let body = document.getElementsByTagName("body")[0];
+        let message;
+        if(didWin){
+            message = "You won!";
+        } else{
+            message = "You lost!";
+        }
+        this.status = document.createElement("p");
+        this.status.innerHTML = message;
+        body.appendChild(this.status);
+        this.canvas.onclick = undefined;
+        this.canvas.oncontextmenu;
+        clearInterval(this.timer);
+
+
+    }
     reveal(e){
-        this.getCursorPosition(this.canvas,e);
+        let pos = this.getCursorPosition(this.canvas,e);
+        let r = pos[0];
+        let c = pos[1];
+        if(this.mines[r][c]){
+            
+            for(let i = 0;i<this.rows;i++){
+                for(let j = 0;j<this.columns;j++){
+                    if(this.mines[i][j] && !this.flags[i][j]){
+                        this.drawSprite(i,j,"mine");
+                    }
+                    if(!this.mines[i][j] && this.flags[i][j]){
+                        this.drawSprite(i,j,"wrongflag");
+                    }
+                }
+            }
+            this.drawSprite(r,c,"redmine");
+            this.endGame(false);
+            //gameover, reveal all mines
+        } else{
+            this.visit(r,c);
+            if(this.movesLeft === 0){
+                //Victory!
+                this.endGame(true);
+            }
+        }
+        
     }
     flag(e){
         e.preventDefault(); e.stopPropagation();
-        this.getCursorPosition(this.canvas,e);
+        let pos = this.getCursorPosition(this.canvas,e);
+        let r = pos[0];
+        let c = pos[1];
+        console.log(r);
+        if(!this.visited[r][c]){
+            if(this.flags[r][c]){
+                this.flagsLeft++;
+            } else{
+                this.flagsLeft--;
+            }
+            this.flagsTracker.innerHTML = this.flagsLeft;
+            this.flags[r][c] = !this.flags[r][c];
+            this.drawSprite(r,c,this.flags[r][c] ? "flag" : "unclicked");
+        }
+
+
     }
     render(){
         //Just show red for mines, black for all else
         for(let i = 0;i<this.rows;i++){
             for(let j = 0;j<this.columns;j++){
-                let all = Object.keys(atlas);
-                let idx = this.random(0,all.length);
-                this.drawSprite(i,j,all[idx]);
+                this.drawSprite(i,j,"unclicked");
             }
         }
     }
     deconstruct(){
         this.canvas.outerHTML="";
+        this.flagsTracker.outerHTML="";
+        this.timeTracker.outerHTML="";
+        if(this.status){
+            this.status.outerHTML="";
+        }
+        clearInterval(this.timer);
         delete this.canvas;
     }
 }
 window.onload = function(){
-    let game = new Minesweeper(0,0,0);
+    let game;
     document.getElementById("beginner").onclick = () => {
-        game.deconstruct();
+        if(game) game.deconstruct();
         game = new Minesweeper(9,9,10);
     }
     document.getElementById("intermediate").onclick = () => {
-        game.deconstruct();
-        game = new Minesweeper(15,13,40);
+        if(game) game.deconstruct();
+        game = new Minesweeper(13,15,40);
     }
     document.getElementById("expert").onclick = () => {
-        game.deconstruct();
-        game = new Minesweeper(30,16,99);
+        if(game) game.deconstruct();
+        game = new Minesweeper(16,30,99);
     }
 }
