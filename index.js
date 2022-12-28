@@ -27,7 +27,7 @@ class Minesweeper{
         this.t = 0;
         //Create a canvas, tie it to Minesweeper instance
         this.timeTracker = document.getElementById("time");
-        this.timeTracker.innerHTML = "0";
+        this.timeTracker.innerHTML = "000";
         this.flagsTracker = document.getElementById("mines");
         this.flagsTracker.innerHTML = this.flagsLeft;
         let canvas = document.createElement('canvas');
@@ -35,6 +35,8 @@ class Minesweeper{
         canvas.id = "game";
         canvas.width = c*WIDTH;
         canvas.height = r*WIDTH;
+        //Set indicator bar width to be canvas width
+        document.getElementById("indicator-bar").style.width = c*WIDTH +"px";
         canvas.onclick = this.reveal.bind(this);
         canvas.oncontextmenu = this.flag.bind(this);
         let gameArea = document.getElementById("game");
@@ -72,7 +74,8 @@ class Minesweeper{
         }
         this.timer = setInterval(() => {
             this.t++;
-            this.timeTracker.innerHTML = this.t;
+            let st = this.t.toString();
+            this.timeTracker.innerHTML = "0".repeat(3-st.length) + st;
         },1000);
     }
     drawSprite(r,c,name){
@@ -107,6 +110,12 @@ class Minesweeper{
                 this.isFirstMove = false;
             }
             this.visited[r][c] = true;
+            //TODO: switch to method implementation
+            if(this.flags[r][c]){
+                this.flags[r][c] = false;
+                this.flagsLeft++;
+                this.flagsTracker.innerHTML = this.flagsLeft;
+            }
             this.movesLeft--;
             //Calculate the number of adjacent mines
             let adj = 0;
@@ -152,6 +161,10 @@ class Minesweeper{
         let pos = this.getCursorPosition(this.canvas,e);
         let r = pos[0];
         let c = pos[1];
+        //Cannot click on a flagged tile
+        if(this.flags[r][c]){
+            return;
+        }
         if(this.mines[r][c]){
             
             for(let i = 0;i<this.rows;i++){
