@@ -20,18 +20,15 @@ class Minesweeper{
     constructor(r,c,m){
         this.rows = r;
         this.columns = c;
-        this.mines = m;
+        this.minesAmount = m;
         this.movesLeft = r*c-m;
         this.flagsLeft = m;
+        this.isFirstMove = true;
         this.t = 0;
         //Create a canvas, tie it to Minesweeper instance
-        this.timeTracker = document.createElement("p");
+        this.timeTracker = document.getElementById("time");
         this.timeTracker.innerHTML = "0";
-        this.timer = setInterval(() => {
-            this.t++;
-            this.timeTracker.innerHTML = this.t;
-        },1000);
-        this.flagsTracker = document.createElement("p");
+        this.flagsTracker = document.getElementById("mines");
         this.flagsTracker.innerHTML = this.flagsLeft;
         let canvas = document.createElement('canvas');
         this.canvas = canvas;
@@ -40,10 +37,8 @@ class Minesweeper{
         canvas.height = r*WIDTH;
         canvas.onclick = this.reveal.bind(this);
         canvas.oncontextmenu = this.flag.bind(this);
-        let body = document.getElementsByTagName("body")[0];
-        body.appendChild(this.timeTracker);
-        body.appendChild(this.flagsTracker);
-        body.appendChild(canvas);
+        let gameArea = document.getElementById("game");
+        gameArea.appendChild(canvas);
         this.ctx = canvas.getContext("2d");
         //2D mines array
         this.mines = [];
@@ -59,20 +54,26 @@ class Minesweeper{
                 this.flags[i].push(false);
             }
         }
-        //generate m mines
-        while(m > 0){
-            let rRow = this.random(0,r-1);
-            let rCol = this.random(0,c-1);
-            if(!this.mines[rRow][rCol]){
-                //No mine here
-                this.mines[rRow][rCol] = true;
-                m--;
-            }
-        }
         //Ties spritesheet to Minesweeper class, although it does not need to be reloaded on each run
         this.spritesheet = new Image();
         this.spritesheet.src = 'spritesheet.png';
         this.spritesheet.onload = this.render.bind(this);
+    }
+    firstClick(rClick,cClick){
+        //generate m mines after user's first interaction
+        while(this.minesAmount > 0){
+            let rRow = this.random(0,this.rows-1);
+            let rCol = this.random(0,this.columns-1);
+            if(!this.mines[rRow][rCol] && !(Math.abs(rRow-rClick) <= 1 && Math.abs(rCol-cClick) <= 1)){
+                //No mine here
+                this.mines[rRow][rCol] = true;
+                this.minesAmount--;
+            }
+        }
+        this.timer = setInterval(() => {
+            this.t++;
+            this.timeTracker.innerHTML = this.t;
+        },1000);
     }
     drawSprite(r,c,name){
         let loc = atlas[name];
@@ -100,6 +101,11 @@ class Minesweeper{
             return;
         }
         if(!this.visited[r][c] && !this.mines[r][c]){
+            if(this.isFirstMove){
+                //Our first move
+                this.firstClick(r,c);
+                this.isFirstMove = false;
+            }
             this.visited[r][c] = true;
             this.movesLeft--;
             //Calculate the number of adjacent mines
@@ -199,8 +205,6 @@ class Minesweeper{
     }
     deconstruct(){
         this.canvas.outerHTML="";
-        this.flagsTracker.outerHTML="";
-        this.timeTracker.outerHTML="";
         if(this.status){
             this.status.outerHTML="";
         }
@@ -210,16 +214,19 @@ class Minesweeper{
 }
 window.onload = function(){
     let game;
-    document.getElementById("beginner").onclick = () => {
+    document.getElementById("begin").onclick = () => {
         if(game) game.deconstruct();
-        game = new Minesweeper(9,9,10);
-    }
-    document.getElementById("intermediate").onclick = () => {
-        if(game) game.deconstruct();
-        game = new Minesweeper(13,15,40);
-    }
-    document.getElementById("expert").onclick = () => {
-        if(game) game.deconstruct();
-        game = new Minesweeper(16,30,99);
+        let gameMode = document.getElementById("dropdown").value;
+        switch(gameMode){
+            case "beginner":
+                game = new Minesweeper(9,9,10);
+                break;
+            case "intermediate":
+                game = new Minesweeper(13,15,40);
+                break;
+            case "expert":
+                game = new Minesweeper(16,30,99);
+                break;
+        }
     }
 }

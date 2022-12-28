@@ -1,0 +1,31 @@
+body{
+    font-family:Oxygen;
+    margin:10px;
+}
+.indicator-bar{
+    display:block;
+}
+.indicator{
+    background:#C12A2A;
+    color:white;
+    padding:5px;
+    border: 1px;
+    display:inline-flex;
+    font-size:20px;
+    align-items:center;
+
+}
+.indicator-left{
+    border-top-left-radius: 5px;
+    left:0;
+}
+.indicator-right{
+    border-top-right-radius:5px;
+    right:0;
+}
+.indicator span{
+    margin-left:7px;
+}
+.indicator img{
+    height:30px;
+}
