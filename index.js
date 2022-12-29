@@ -222,6 +222,8 @@ class Minesweeper{
             this.status.outerHTML="";
         }
         clearInterval(this.timer);
+        this.canvas.onclick = undefined;
+        this.canvas.oncontextmenu = undefined;
         delete this.canvas;
     }
 }
