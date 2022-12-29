@@ -37,6 +37,7 @@ class Minesweeper{
         canvas.height = r*WIDTH;
         //Set indicator bar width to be canvas width
         document.getElementById("indicator-bar").style.width = c*WIDTH +"px";
+        document.getElementById("indicator-bar").style.visibility = "visible";
         canvas.onclick = this.reveal.bind(this);
         canvas.oncontextmenu = this.flag.bind(this);
         let gameArea = document.getElementById("game");
