@@ -160,6 +160,11 @@ class Minesweeper{
     }
     reveal(e){
         let pos = this.getCursorPosition(this.canvas,e);
+        //Left clicks with ctrl should flag mines
+        if(e.ctrlKey){
+            this.flag(e);
+            return;
+        }
         let r = pos[0];
         let c = pos[1];
         //Cannot click on a flagged tile
